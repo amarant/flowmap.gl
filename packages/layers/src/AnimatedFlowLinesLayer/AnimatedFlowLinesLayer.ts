@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Layer, picking, project32} from '@deck.gl/core';
-import GL from '@luma.gl/constants';
-import {Geometry, Model} from '@luma.gl/core';
+import {Layer, UpdateParameters, picking, project32} from '@deck.gl/core';
+import {Geometry, Model} from '@luma.gl/engine';
 import FragmentShader from './AnimatedFlowLinesLayerFragment.glsl';
 import VertexShader from './AnimatedFlowLinesLayerVertex.glsl';
 import {FlowLinesLayerAttributes, RGBA} from '@flowmap.gl/data';
 import {LayerProps} from '../types';
+
 export interface Props<F> extends LayerProps {
   id: string;
   opacity?: number;
@@ -44,8 +44,9 @@ const loopLength = 1800;
 const animationSpeed = 20;
 const loopTime = loopLength / animationSpeed;
 
-export default class AnimatedFlowLinesLayer<F> extends Layer {
+export default class AnimatedFlowLinesLayer<F> extends Layer<Props<F>> {
   static defaultProps = {
+    ...Layer.defaultProps,
     currentTime: 0,
     animationTailLength: 0.7,
     getSourcePosition: {type: 'accessor', value: (d: any) => [0, 0]},
@@ -63,39 +64,42 @@ export default class AnimatedFlowLinesLayer<F> extends Layer {
     },
   };
 
+  declare state: Layer['state'] & {
+    model: Model;
+  };
+
   constructor(props: Props<F>) {
     super(props);
   }
 
-  getShaders(): Record<string, unknown> {
+  getShaders() {
     return super.getShaders({
       vs: VertexShader,
       fs: FragmentShader,
       modules: [project32, picking],
-      shaderCache: this.context.shaderCache,
     });
   }
 
-  initializeState(): void {
+  initializeState() {
     const attributeManager = this.getAttributeManager();
 
     /* eslint-disable max-len */
-    attributeManager.addInstanced({
+    attributeManager?.addInstanced({
       instanceSourcePositions: {
         size: 3,
-        type: GL.DOUBLE,
+        type: 'float64',
         transition: true,
         accessor: 'getSourcePosition',
       },
       instanceTargetPositions: {
         size: 3,
-        type: GL.DOUBLE,
+        type: 'float64',
         transition: true,
         accessor: 'getTargetPosition',
       },
       instanceColors: {
         size: 4,
-        type: GL.UNSIGNED_BYTE,
+        type: 'uint8',
         transition: true,
         accessor: 'getColor',
         defaultValue: [0, 0, 0, 255],
@@ -120,37 +124,40 @@ export default class AnimatedFlowLinesLayer<F> extends Layer {
     /* eslint-enable max-len */
   }
 
-  getNeedsRedraw(): boolean {
-    return true;
+  getNeedsRedraw() {
+    return 'true';
   }
 
-  updateState({props, oldProps, changeFlags}: Record<string, any>): void {
-    super.updateState({props, oldProps, changeFlags});
+  updateState({
+    props,
+    oldProps,
+    context,
+    changeFlags,
+  }: UpdateParameters<this>): void {
+    super.updateState({props, oldProps, context, changeFlags});
 
     if (changeFlags.extensionsChanged) {
-      const {gl} = this.context;
-      this.state.model?.delete();
-      this.state.model = this._getModel(gl);
-      this.getAttributeManager().invalidateAll();
+      this.state.model?.destroy();
+      this.state.model = this._getModel();
+      this.getAttributeManager()?.invalidateAll();
     }
   }
 
-  draw({uniforms}: Record<string, any>): void {
+  draw({uniforms}: Record<string, any>) {
     const {thicknessUnit, animationTailLength} = this.props;
     const timestamp = Date.now() / 1000;
     const animationTime = ((timestamp % loopTime) / loopTime) * loopLength;
 
-    this.state.model
-      .setUniforms({
-        ...uniforms,
-        thicknessUnit: thicknessUnit * 4,
-        animationTailLength,
-        currentTime: animationTime,
-      })
-      .draw();
+    this.state.model.setUniforms({
+      ...uniforms,
+      thicknessUnit: thicknessUnit! * 4,
+      animationTailLength,
+      currentTime: animationTime,
+    });
+    this.state.model.draw(this.context.renderPass);
   }
 
-  _getModel(gl: WebGLRenderingContext): Record<string, unknown> {
+  _getModel() {
     /*
      *  (0, -1)-------------_(1, -1)
      *       |          _,-"  |
@@ -160,18 +167,17 @@ export default class AnimatedFlowLinesLayer<F> extends Layer {
      */
     const positions = [0, -1, 0, 0, 1, 0, 1, -1, 0, 1, 1, 0];
 
-    return new Model(
-      gl,
-      Object.assign({}, this.getShaders(), {
-        id: this.props.id,
-        geometry: new Geometry({
-          drawMode: GL.TRIANGLE_STRIP,
-          attributes: {
-            positions: new Float32Array(positions),
-          },
-        }),
-        isInstanced: true,
+    return new Model(this.context.device, {
+      ...this.getShaders(),
+      id: this.props.id,
+      bufferLayout: this.getAttributeManager()!.getBufferLayouts(),
+      geometry: new Geometry({
+        topology: 'triangle-strip',
+        attributes: {
+          positions: {size: 3, value: new Float32Array(positions)},
+        },
       }),
-    );
+      isInstanced: true,
+    });
   }
 }

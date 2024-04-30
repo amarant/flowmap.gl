@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "esnext",
-    "lib": ["esnext", "dom"],
+    "module": "es2020",
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,5 +22,8 @@
     "isolatedModules": true,
     "downlevelIteration": true
   },
-  "exclude": ["**/node_modules", "**/dist/**/*"]
+  "exclude": [
+    "**/node_modules",
+    "**/dist/**/*"
+  ]
 }

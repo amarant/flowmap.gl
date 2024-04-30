@@ -33,16 +33,18 @@
     "examples/*"
   ],
   "dependencies": {
-    "prettier": "^3.0.3",
-    "typescript": "^5.2.2"
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.7.0",
-    "@typescript-eslint/parser": "^6.7.0",
-    "eslint": "^8.49.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
     "gh-pages": "^5.0.0",
     "husky": "^8.0.3",
-    "lint-staged": "^13.2.2",
-    "turbo": "^1.12.4"
-  }
+    "lerna": "^8.1.2",
+    "lint-staged": "^13.3.0",
+    "turbo": "^1.13.3"
+  },
+  "packageManager": "yarn@4.1.1"
 }

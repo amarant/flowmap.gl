@@ -4,18 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 export default `\
+#version 300 es
 #define SHADER_NAME flow-circles-layer-fragment-shader
 #define SOFT_OUTLINE 0.05
 #define EPS 0.05
 precision highp float;
 
+in vec4 vColor;
+in vec2 unitPosition;
+in float unitInRadius;
+in float unitOutRadius;
+
 uniform vec4 emptyColor;
 uniform float outlineEmptyMix;
 
-varying vec4 vColor;
-varying vec2 unitPosition;
-varying float unitInRadius;
-varying float unitOutRadius;
+out vec4 color;
 
 float when_gt(float x, float y) {
   return max(sign(x - y), 0.0);
@@ -52,13 +55,13 @@ void main(void) {
   float step5 = 1.0 - 5.0 * EPS;
   float step6 = 1.0;
   
-  gl_FragColor = vColor;
-  gl_FragColor = mix(gl_FragColor, emptyColor / 255., smoothstep(step2, step3, distToCenter));
-  gl_FragColor = mix(gl_FragColor, ringColor, smoothstep(step3, step4, distToCenter));
-  gl_FragColor = mix(gl_FragColor, outlineColor, smoothstep(step5, step6, distToCenter));
-  // gl_FragColor = mix(gl_FragColor, emptyColor / 255., smoothstep(step6, 1.0, distToCenter));
-  gl_FragColor.a = vColor.a;
-  gl_FragColor.a *= smoothstep(0.0, SOFT_OUTLINE, 1.0 - distToCenter);
-  DECKGL_FILTER_COLOR(gl_FragColor, geometry);
+  color = vColor;
+  color = mix(color, emptyColor / 255., smoothstep(step2, step3, distToCenter));
+  color = mix(color, ringColor, smoothstep(step3, step4, distToCenter));
+  color = mix(color, outlineColor, smoothstep(step5, step6, distToCenter));
+  // color = mix(color, emptyColor / 255., smoothstep(step6, 1.0, distToCenter));
+  color.a = vColor.a;
+  color.a *= smoothstep(0.0, SOFT_OUTLINE, 1.0 - distToCenter);
+  DECKGL_FILTER_COLOR(color, geometry);
 }
 `;

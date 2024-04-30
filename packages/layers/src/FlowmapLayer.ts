@@ -3,7 +3,13 @@
  * Copyright (c) 2018-2020 Teralytics
  * SPDX-License-Identifier: Apache-2.0
  */
-import {CompositeLayer} from '@deck.gl/core';
+import {
+  CompositeLayer,
+  CompositeLayerProps,
+  DefaultProps,
+  UpdateParameters,
+} from '@deck.gl/core';
+
 import {ScatterplotLayer, TextLayer} from '@deck.gl/layers';
 import {
   FilterState,
@@ -14,6 +20,7 @@ import {
   FlowmapDataProvider,
   LayersData,
   LocalFlowmapDataProvider,
+  SettingsState,
   ViewportProps,
   colorAsRgba,
   getFlowLineAttributesByIndex,
@@ -29,13 +36,13 @@ import FlowLinesLayer from './FlowLinesLayer';
 import {
   FlowmapLayerPickingInfo,
   LayerProps,
-  PickingInfo,
+  LocationPickingInfo,
   PickingType,
 } from './types';
 
 export type FlowmapLayerProps<
-  L extends Record<string, any>,
-  F extends Record<string, any>,
+  L extends Record<string, any> = {},
+  F extends Record<string, any> = {},
 > = {
   data?: FlowmapData<L, F>;
   dataProvider?: FlowmapDataProvider<L, F>;
@@ -61,7 +68,7 @@ export type FlowmapLayerProps<
   ) => void;
   onClick?: (info: FlowmapLayerPickingInfo<L, F>, event: SourceEvent) => void;
 } & Partial<FlowmapDataAccessors<L, F>> &
-  LayerProps;
+  CompositeLayerProps;
 
 const PROPS_TO_CAUSE_LAYER_DATA_UPDATE: string[] = [
   'filter',
@@ -115,8 +122,8 @@ export type SourceEvent = {srcEvent: MouseEvent};
 export default class FlowmapLayer<
   L extends Record<string, any>,
   F extends Record<string, any>,
-> extends CompositeLayer {
-  static defaultProps = {
+> extends CompositeLayer<Required<FlowmapLayerProps<L, F>>> {
+  static defaultProps: DefaultProps<FlowmapLayerProps> = {
     darkMode: true,
     fadeAmount: 50,
     locationsEnabled: true,
@@ -130,15 +137,15 @@ export default class FlowmapLayer<
     clusteringLevel: undefined,
     adaptiveScalesEnabled: true,
     colorScheme: 'Teal',
-    highlightColor: 'orange',
+    highlightColor: 'orange' as any,
     maxTopFlowsDisplayNum: 5000,
   };
-  state: State<L, F> | undefined;
+  declare state: CompositeLayer['state'] & State<L, F>;
 
   public constructor(props: FlowmapLayerProps<L, F>) {
     super({
       ...props,
-      onHover: (info: PickingInfo<any>, event: SourceEvent) => {
+      onHover: (info: any, event: any) => {
         const startTime = Date.now();
         this.setState({
           highlightedObject: this._getHighlightedObject(info),
@@ -157,7 +164,7 @@ export default class FlowmapLayer<
           });
         }
       },
-      onClick: (info: PickingInfo<any>, event: SourceEvent) => {
+      onClick: (info: any, event: any) => {
         const {onClick} = props;
         const startTime = Date.now();
         this.setState({
@@ -176,6 +183,9 @@ export default class FlowmapLayer<
           });
         }
       },
+      highlightColor: props.highlightColor
+        ? colorAsRgba(props.highlightColor)
+        : undefined,
     });
   }
 
@@ -229,7 +239,7 @@ export default class FlowmapLayer<
     this.setState({dataProvider: this._getOrMakeDataProvider()});
   }
 
-  shouldUpdateState(params: Record<string, any>): boolean {
+  shouldUpdateState(params: UpdateParameters<this>): boolean {
     const {changeFlags} = params;
     // if (this._viewportChanged()) {
     //   return true;
@@ -271,7 +281,7 @@ export default class FlowmapLayer<
     }
   }
 
-  private _getSettingsState() {
+  private _getSettingsState(): SettingsState {
     const {
       locationsEnabled,
       locationTotalsEnabled,
@@ -303,7 +313,7 @@ export default class FlowmapLayer<
       darkMode,
       fadeAmount,
       colorScheme,
-      highlightColor,
+      highlightColor: highlightColor as any as string,
       maxTopFlowsDisplayNum,
     };
   }
@@ -357,6 +367,8 @@ export default class FlowmapLayer<
               dest: dest,
               count: accessors.getFlowMagnitude(flow),
             },
+            color: info.color, // TODO look into
+            pixelRatio: info.pixelRatio, // TODO look into
           };
         }
       }
@@ -384,6 +396,8 @@ export default class FlowmapLayer<
               totals,
               circleRadius: circleRadius,
             },
+            color: info.color, // TODO look into
+            pixelRatio: info.pixelRatio, // TODO look into
           };
         }
       }
@@ -392,9 +406,7 @@ export default class FlowmapLayer<
     return undefined;
   }
 
-  private _getHighlightedObject(
-    info: Record<string, any>,
-  ): HighlightedObject | undefined {
+  private _getHighlightedObject(info: Record<string, any>) {
     const {index, sourceLayer} = info;
     if (index < 0) return undefined;
     if (
@@ -437,7 +449,7 @@ export default class FlowmapLayer<
     return undefined;
   }
 
-  renderLayers(): Array<any> {
+  renderLayers() {
     const layers = [];
     if (this.state?.layersData) {
       const {layersData, highlightedObject} = this.state;
@@ -508,7 +520,7 @@ export default class FlowmapLayer<
                     getLineWidth: 2,
                     radiusUnits: 'pixels',
                     getRadius: (d: HighlightedLocationObject) => d.radius,
-                    getLineColor: colorAsRgba(this.props.highlightColor),
+                    getLineColor: colorAsRgba(this.props.highlightColor!),
                     getPosition: (d: HighlightedLocationObject) => d.coords,
                   }),
                 }),
@@ -567,7 +579,7 @@ export default class FlowmapLayer<
   }
 }
 
-function pickViewportProps(viewport: Record<string, any>): ViewportProps {
+function pickViewportProps(viewport: Record<string, any>) {
   const {width, height, longitude, latitude, zoom, pitch, bearing} = viewport;
   return {
     width,

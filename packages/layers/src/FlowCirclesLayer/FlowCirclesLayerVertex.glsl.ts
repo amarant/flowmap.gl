@@ -4,26 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 export default `\
+#version 300 es
 #define SHADER_NAME flow-circles-layer-vertex-shader
 #define radiusScale 100
 
-attribute vec3 positions;
+in vec3 positions;
 
-attribute vec3 instancePositions;
-attribute vec3 instancePositions64Low;
-attribute float instanceInRadius;
-attribute float instanceOutRadius;
-attribute vec4 instanceColors;
-attribute vec3 instancePickingColors;
+in vec3 instancePositions;
+in vec3 instancePositions64Low;
+in float instanceInRadius;
+in float instanceOutRadius;
+in vec4 instanceColors;
+in vec3 instancePickingColors;
 
 uniform float opacity;
 uniform vec4 emptyColor;
 uniform float outlineEmptyMix;
 
-varying vec4 vColor;
-varying vec2 unitPosition;
-varying float unitInRadius;
-varying float unitOutRadius;
+out vec4 vColor;
+out vec2 unitPosition;
+out float unitInRadius;
+out float unitOutRadius;
 
 void main(void) {
   geometry.worldPosition = instancePositions;

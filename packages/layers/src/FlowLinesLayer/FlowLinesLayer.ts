@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Layer, picking, project32} from '@deck.gl/core';
-import GL from '@luma.gl/constants';
-import {Geometry, Model} from '@luma.gl/core';
+import {Layer, UpdateParameters, picking, project32} from '@deck.gl/core';
+import {Geometry, Model} from '@luma.gl/engine';
 import FragmentShader from './FlowLinesLayerFragment.glsl';
 import VertexShader from './FlowLinesLayerVertex.glsl';
 import {FlowLinesLayerAttributes, RGBA} from '@flowmap.gl/data';
@@ -98,9 +97,10 @@ const ZEROES = [
   0, 0, 0,
 ];
 
-class FlowLinesLayer<F> extends Layer {
+class FlowLinesLayer<F> extends Layer<Props<F>> {
   static layerName = 'FlowLinesLayer';
   static defaultProps = {
+    ...Layer.defaultProps,
     getSourcePosition: {type: 'accessor', value: (d: any) => [0, 0]},
     getTargetPosition: {type: 'accessor', value: (d: any) => [0, 0]},
     getColor: {type: 'accessor', value: DEFAULT_COLOR},
@@ -114,36 +114,38 @@ class FlowLinesLayer<F> extends Layer {
       depthTest: false,
     },
   };
-  // props!: Props;
+
+  declare state: Layer['state'] & {
+    model: Model;
+  };
 
   constructor(props: Props<F>) {
     super(props);
   }
 
-  getShaders(): Record<string, unknown> {
+  getShaders() {
     return super.getShaders({
       vs: VertexShader,
       fs: FragmentShader,
       modules: [project32, picking],
-      shaderCache: this.context.shaderCache,
     });
   }
 
-  initializeState(): void {
-    const {attributeManager} = this.state;
+  initializeState() {
+    const attributeManager = this.getAttributeManager();
 
-    attributeManager.addInstanced({
+    attributeManager?.addInstanced({
       instanceSourcePositions: {
         accessor: 'getSourcePosition',
         size: 3,
         transition: false,
-        type: GL.DOUBLE,
+        type: 'float64',
       },
       instanceTargetPositions: {
         accessor: 'getTargetPosition',
         size: 3,
         transition: false,
-        type: GL.DOUBLE,
+        type: 'float64',
       },
       instanceThickness: {
         accessor: 'getThickness',
@@ -158,7 +160,7 @@ class FlowLinesLayer<F> extends Layer {
       instanceColors: {
         accessor: 'getColor',
         size: 4,
-        type: GL.UNSIGNED_BYTE,
+        type: 'uint8',
         transition: false,
       },
       instancePickable: {
@@ -169,16 +171,18 @@ class FlowLinesLayer<F> extends Layer {
     });
   }
 
-  updateState({props, oldProps, changeFlags}: Record<string, any>): void {
-    super.updateState({props, oldProps, changeFlags});
+  updateState({
+    props,
+    oldProps,
+    context,
+    changeFlags,
+  }: UpdateParameters<this>): void {
+    super.updateState({props, oldProps, context, changeFlags});
 
     if (changeFlags.extensionsChanged) {
-      const {gl} = this.context;
-      if (this.state.model) {
-        this.state.model.delete();
-      }
-      this.setState({model: this._getModel(gl)});
-      this.getAttributeManager().invalidateAll();
+      this.state.model?.destroy();
+      this.setState({model: this._getModel()});
+      this.getAttributeManager()?.invalidateAll();
     }
   }
 
@@ -186,18 +190,17 @@ class FlowLinesLayer<F> extends Layer {
     const {gl} = this.context;
     const {outlineColor, thicknessUnit} = this.props;
     gl.lineWidth(1);
-    this.state.model
-      .setUniforms({
-        ...uniforms,
-        outlineColor: outlineColor.map((x: number) => x / 255),
-        // outlineColor: [1, 0, 0, 1],
-        thicknessUnit: thicknessUnit * 2.0,
-        gap: 0.5,
-      })
-      .draw();
+    this.state.model.setUniforms({
+      ...uniforms,
+      outlineColor: outlineColor!.map((x: number) => x / 255),
+      // outlineColor: [1, 0, 0, 1],
+      thicknessUnit: thicknessUnit! * 2.0,
+      gap: 0.5,
+    });
+    this.state.model.draw(this.context.renderPass);
   }
 
-  _getModel(gl: WebGLRenderingContext): Record<string, any> {
+  _getModel() {
     let positions: number[] = [];
     let pixelOffsets: number[] = [];
 
@@ -205,7 +208,7 @@ class FlowLinesLayer<F> extends Layer {
     if (drawOutline) {
       // source_target_mix, perpendicular_offset_in_thickness_units, direction_of_travel_offset_in_thickness_units
       positions = positions.concat(POSITIONS);
-      const tout = outlineThickness;
+      const tout = outlineThickness!;
       const tin = INNER_SIDE_OUTLINE_THICKNESS; // the outline shouldn't cover the opposite arrow
       pixelOffsets = pixelOffsets.concat(getOutlinePixelOffsets(tout, tin));
     }
@@ -213,18 +216,23 @@ class FlowLinesLayer<F> extends Layer {
     positions = positions.concat(POSITIONS);
     pixelOffsets = pixelOffsets.concat(ZEROES);
 
-    return new Model(gl, {
+    return new Model(this.context.device, {
       id: this.props.id,
       ...this.getShaders(),
       geometry: new Geometry({
-        drawMode: GL.TRIANGLES,
+        topology: 'triangle-list',
         attributes: {
-          positions: new Float32Array(positions),
-          normals: new Float32Array(pixelOffsets),
+          positions: {
+            size: 3,
+            value: new Float32Array(positions),
+          },
+          normals: {
+            size: 3,
+            value: new Float32Array(pixelOffsets),
+          },
         },
       }),
       isInstanced: true,
-      shaderCache: this.context.shaderCache,
     });
   }
 }

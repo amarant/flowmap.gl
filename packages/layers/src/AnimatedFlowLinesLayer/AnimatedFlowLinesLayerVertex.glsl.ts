@@ -4,28 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 export default `\
+#version 300 es
 #define SHADER_NAME animated-flow-lines-layer-vertex-shader
 #define SPEED 0.015
 #define NUM_PARTS 5.0
 
-attribute vec3 positions;
-attribute vec3 instanceSourcePositions;
-attribute vec3 instanceTargetPositions;
-attribute vec3 instanceSourcePositions64Low;
-attribute vec3 instanceTargetPositions64Low;
-attribute vec4 instanceColors;
-attribute vec3 instancePickingColors;
-attribute float instanceWidths;
-attribute float instancePickable;
-attribute float instanceStaggering;
+in vec3 positions;
+in vec3 instanceSourcePositions;
+in vec3 instanceTargetPositions;
+in vec3 instanceSourcePositions64Low;
+in vec3 instanceTargetPositions64Low;
+in vec4 instanceColors;
+in vec3 instancePickingColors;
+in float instanceWidths;
+in float instancePickable;
+in float instanceStaggering;
 
 uniform float opacity;
 uniform float currentTime;
 uniform float thicknessUnit;
     
-varying vec4 vColor;
-varying float sourceToTarget;
-varying vec2 uv;
+out vec4 vColor;
+out float sourceToTarget;
+out vec2 uv;
 
 // offset vector by strokeWidth pixels
 // offset_direction is -1 (left) or 1 (right)

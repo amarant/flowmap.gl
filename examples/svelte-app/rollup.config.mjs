@@ -52,6 +52,7 @@ export default {
   },
   plugins: [
     replace({
+      preventAssignment: true,
       MAPBOX_ACCESS_TOKEN: JSON.stringify(process.env.MAPBOX_ACCESS_TOKEN),
     }),
     svelte({

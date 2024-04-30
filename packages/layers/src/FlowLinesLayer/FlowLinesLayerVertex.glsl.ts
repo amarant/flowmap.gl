@@ -4,27 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 export default `\
+#version 300 es
 #define SHADER_NAME flow-line-layer-vertex-shader
 
-attribute vec3 positions;
-attribute vec3 normals;
-attribute vec4 instanceColors;
-attribute float instanceThickness;    // 0..0.5
-attribute vec3 instanceSourcePositions;
-attribute vec3 instanceTargetPositions;
-attribute vec3 instanceSourcePositions64Low;
-attribute vec3 instanceTargetPositions64Low;
-attribute vec3 instancePickingColors;
-attribute vec2 instanceEndpointOffsets;
-attribute float instancePickable;
+in vec3 positions;
+in vec3 normals;
+in vec4 instanceColors;
+in float instanceThickness;    // 0..0.5
+in vec3 instanceSourcePositions;
+in vec3 instanceTargetPositions;
+in vec3 instanceSourcePositions64Low;
+in vec3 instanceTargetPositions64Low;
+in vec3 instancePickingColors;
+in vec2 instanceEndpointOffsets;
+in float instancePickable;
 
 uniform vec4 outlineColor;
 uniform float thicknessUnit;
 uniform float gap;
 uniform float opacity;
 
-varying vec4 vColor;
-varying vec2 uv;
+out vec4 vColor;
+out vec2 uv;
 
 void main(void) {
   geometry.worldPosition = instanceSourcePositions;

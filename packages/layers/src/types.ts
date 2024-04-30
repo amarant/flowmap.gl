@@ -4,12 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  AggregateFlow,
-  Cluster,
-  ClusterNode,
-  LocationTotals,
-} from '@flowmap.gl/data';
+import {PickingInfo} from '@deck.gl/core';
+import {AggregateFlow, ClusterNode, LocationTotals} from '@flowmap.gl/data';
 
 export type LayerProps = Record<string, unknown>;
 
@@ -17,19 +13,6 @@ export enum PickingType {
   LOCATION = 'location',
   FLOW = 'flow',
   // LOCATION_AREA = 'location-area',
-}
-
-export type DeckGLLayer = Record<string, any>;
-
-export interface PickingInfo<T> {
-  layer: DeckGLLayer;
-  index: number;
-  picked: boolean;
-  object: T | undefined;
-  x: number;
-  y: number;
-  coordinate: [number, number];
-  event: MouseEvent | undefined;
 }
 
 export interface LocationPickingInfoObject<L> {

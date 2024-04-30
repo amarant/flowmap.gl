@@ -22,6 +22,7 @@ import {
   useUI,
 } from '@flowmap.gl/examples-common';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import {Layer} from '@deck.gl/core';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 const MAPBOX_STYLE_LIGHT = 'mapbox://styles/mapbox/streets-v11';
@@ -116,7 +117,7 @@ function App() {
         initialViewState={viewState}
         onViewStateChange={handleViewStateChange}
         controller={true}
-        layers={layers}
+        layers={layers as Layer[]}
         style={{mixBlendMode: config.darkMode ? 'screen' : 'darken'}}
       >
         <ReactMapGl
